@@ -106,7 +106,7 @@ def embeddings_on_pinecone(texts):
                     model="text-embedding-3-small",
                 )
 
-        pc = PineconeClient(api_key=st.session_state.pinecone_api_key)
+        pc = PineconeClient(api_key=st.session_state[''])
         vector_store = PineconeVectorStore(
             index=pc.Index(st.session_state.pinecone_index), embedding=embeddings
         )
@@ -131,7 +131,7 @@ def query_llm(retriever, query):
     try:
         # TODO: Add custom prompting for better answers
         qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=ChatOpenAI(openai_api_key=st.secrets.pinecone_api_key),
+            llm=ChatOpenAI(openai_api_key=st.secrets['OPENAI_API_KEY']),
             retriever=retriever,
             return_source_documents=True,
         )
@@ -157,8 +157,8 @@ def setup_interface():
     """
     with st.sidebar:
         # API keys and configuration
-        if "openai_api_key" in st.secrets:
-            st.session_state.openai_api_key = st.secrets.openai_api_key
+        if "OPENAI_API_KEY" in st.secrets:
+            st.session_state.openai_api_key = st.secrets['OPENAI_API_KEY']
         else:
             st.session_state.openai_api_key = st.text_input(
                 "OpenAI API Key", 
@@ -166,26 +166,16 @@ def setup_interface():
                 help="Enter your OpenAI API key"
             )
         
-        # TODO: Add validation for API keys
-        if "pinecone_api_key" in st.secrets:
-            st.session_state.pinecone_api_key = st.secrets.pinecone_api_key
-        else:
-            st.session_state.pinecone_api_key = st.text_input(
-                "Pinecone API Key",
-                type="password",
-                help="Enter your Pinecone API key"
-            )
-        
-        if "pinecone_env" in st.secrets:
-            st.session_state.pinecone_env = st.secrets.pinecone_env
+        if "PINECONE_ENV" in st.secrets:
+            st.session_state.pinecone_env = st.secrets['PINECONE_ENV']
         else:
             st.session_state.pinecone_env = st.text_input(
                 "Pinecone Environment",
                 help="Enter your Pinecone environment"
             )
         
-        if "pinecone_index" in st.secrets:
-            st.session_state.pinecone_index = st.secrets.pinecone_index
+        if "PINECONE_INDEX" in st.secrets:
+            st.session_state.pinecone_index = st.secrets['PINECONE_INDEX']
         else:
             st.session_state.pinecone_index = st.text_input(
                 "Pinecone Index Name",
@@ -202,7 +192,7 @@ def setup_interface():
     # TODO: Add file size validation
     st.session_state.source_docs = st.file_uploader(
         label="Upload Documents",
-        type=["pdf", "docx", "txt", "csv", "md", "xlsx"],
+        type=["pdf", "docx", "txt", "csv", "md"],
         accept_multiple_files=True,
         help="Upload one or more documents. Supported formats: PDF, Word, Text, CSV, Markdown, Excel"
     )
@@ -214,7 +204,7 @@ def validate_prerequisites():
         
     if st.session_state.pinecone_db:
         if not all([
-            st.session_state.pinecone_api_key,
+            st.session_state[''],
             st.session_state.pinecone_env, 
             st.session_state.pinecone_index
         ]):
