@@ -31,19 +31,31 @@ st.title("📚 Document Q&A System")
 
 def load_documents():
     """
-    Loads PDF documents from the temporary directory.
+    Loads PDF documents using the glob pattern from the temp directory.
     
     Returns:
         documents: List of loaded document objects
     """
-    try:
-        # TODO: Add validation to check if directory is empty
-        loader = DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf')
-        documents = loader.load()
-        return documents
-    except Exception as e:
-        st.error(f"Error loading documents: {str(e)}")
-        return []
+    # Define supported file types and their loaders
+    supported_types = {
+        '.pdf': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf'),
+        '.txt': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.txt'),
+        '.docx': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.docx'),
+        '.doc': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.doc')
+    }
+    documents = []
+    for file_type, loader in supported_types.items():
+        try:
+            docs = loader.load()
+            documents.extend(docs)
+        except Exception as e:
+            st.error(f"Error loading {file_type} files: {str(e)}")
+            return []
+
+    if not documents: 
+        st.warning("No supported documents were found in the directory.")
+
+    return documents
 
 def split_documents(documents):
     """
@@ -189,64 +201,76 @@ def setup_interface():
     # File upload
     # TODO: Add file size validation
     st.session_state.source_docs = st.file_uploader(
-        label="Upload PDF Documents",
-        type="pdf",
+        label="Upload Documents",
+        type=["pdf", "docx", "txt", "csv", "md", "xlsx"],
         accept_multiple_files=True,
-        help="Upload one or more PDF documents"
+        help="Upload one or more documents. Supported formats: PDF, Word, Text, CSV, Markdown, Excel"
     )
+
+def validate_prerequisites():
+    if not st.session_state.openai_api_key:
+        st.warning("Please enter your OpenAI API key.")
+        return False
+        
+    if st.session_state.pinecone_db:
+        if not all([
+            st.session_state.pinecone_api_key,
+            st.session_state.pinecone_env, 
+            st.session_state.pinecone_index
+        ]):
+            st.warning("Please provide all Pinecone credentials.")
+            return False
+            
+    if not st.session_state.source_docs:
+        st.warning("Please upload at least one document.")
+        return False
+        
+    return True
+
+def save_document_to_temp(doc):
+    file_extension = Path(doc.name).suffix
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        dir=TMP_DIR.as_posix(),
+        suffix=file_extension
+    ) as tmp_file:
+        tmp_file.write(doc.read())
+        return tmp_file.name
 
 def process_documents():
     """
     Processes uploaded documents and creates vector store.
     """
-    # Validate required fields
-    if not st.session_state.openai_api_key:
-        st.warning("Please enter your OpenAI API key.")
+    if not validate_prerequisites():
         return
-    
-    if st.session_state.pinecone_db and (
-        not st.session_state.pinecone_api_key or
-        not st.session_state.pinecone_env or
-        not st.session_state.pinecone_index
-    ):
-        st.warning("Please provide all Pinecone credentials.")
-        return
-    
-    if not st.session_state.source_docs:
-        st.warning("Please upload at least one document.")
-        return
-    
+
+    temp_files = []
     try:
         with st.spinner("Processing documents..."):
-            # Save uploaded files to temporary directory
-            for source_doc in st.session_state.source_docs:
-                with tempfile.NamedTemporaryFile(
-                    delete=False, 
-                    dir=TMP_DIR.as_posix(),
-                    suffix='.pdf'
-                ) as tmp_file:
-                    tmp_file.write(source_doc.read())
-            
-            # Load and process documents
+            # Save uploaded files
+            for doc in st.session_state.source_docs:
+                temp_file = save_document_to_temp(doc)
+                temp_files.append(temp_file)
+
+            # Process documents
             documents = load_documents()
-            
-            # Clean up temporary files
-            for file in TMP_DIR.iterdir():
-                TMP_DIR.joinpath(file).unlink()
-            
-            # Split documents into chunks
             texts = split_documents(documents)
             
             # Create vector store
-            if not st.session_state.pinecone_db:
-                st.session_state.retriever = embeddings_on_local_vectordb(texts)
-            else:
-                st.session_state.retriever = embeddings_on_pinecone(texts)
-            
-            st.success("Documents processed successfully!")
-            
+            st.session_state.retriever = (
+                embeddings_on_pinecone(texts) 
+                if st.session_state.pinecone_db
+                else embeddings_on_local_vectordb(texts)
+            )
+
+        st.success("Documents processed successfully!")
+
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.error(f"Error processing documents: {str(e)}")
+    finally:
+        # Clean up temp files
+        for file in temp_files:
+            Path(file).unlink(missing_ok=True)
 
 def main():
     """
