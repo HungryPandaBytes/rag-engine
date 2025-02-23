@@ -1,3 +1,5 @@
 secrets.toml
 .env
+env
+data
 chroma_db

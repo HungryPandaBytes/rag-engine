@@ -1,5 +1,4 @@
 tesseract
-Copystreamlit
 langchain
 langchain-community
 langchain-openai
@@ -8,6 +7,5 @@ openai
 pinecone-client
 chromadb
 pypdf
-python-docx
 pdf2image
 pytesseract
