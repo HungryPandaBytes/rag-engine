@@ -204,10 +204,13 @@ def setup_interface():
 
     with st.sidebar:
         # Vector store selection
-        st.session_state.pinecone_db = st.toggle(
-            'Use Pinecone Vector DB',
-            help="Toggle between local and cloud vector storage"
-        )
+        # st.session_state.pinecone_db = st.toggle(
+        #     'Use Pinecone Vector DB',
+        #     help="Toggle between local and cloud vector storage"
+        # )
+
+        # Use Pinecone in production
+        st.session_state.pinecone_db = True
 
        # Neg Space 
         st.sidebar.write('') 
