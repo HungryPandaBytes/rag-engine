@@ -1,0 +1,13 @@
+tesseract
+Copystreamlit
+langchain
+langchain-community
+langchain-openai
+langchain-pinecone
+openai
+pinecone-client
+chromadb
+pypdf
+python-docx
+pdf2image
+pytesseract

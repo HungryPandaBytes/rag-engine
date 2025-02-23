@@ -7,7 +7,7 @@ from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma, Pinecone
 
 # Document processing imports
-from langchain_community.document_loaders import DirectoryLoader
+from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 
 # LLM and chain imports
@@ -25,9 +25,12 @@ LOCAL_VECTOR_STORE_DIR = Path(__file__).resolve().parent.joinpath('data', 'vecto
 TMP_DIR.mkdir(parents=True, exist_ok=True)
 LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
+
 # Set up the Streamlit page
 st.set_page_config(page_title="RAG System")
-st.title("📚 Document Q&A System")
+st.title("⚖️ Legal Document AI Assistant")
+st.write("Upload your legal documents to get AI-powered analysis, risk assessment, and key insights.")
+
 
 def load_documents():
     """
@@ -38,7 +41,7 @@ def load_documents():
     """
     # Define supported file types and their loaders
     supported_types = {
-        '.pdf': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf'),
+        '.pdf': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf', loader_cls=PyPDFLoader),
         '.txt': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.txt'),
         '.docx': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.docx'),
         '.doc': DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.doc')
@@ -67,7 +70,7 @@ def split_documents(documents):
         texts: List of document chunks
     """
     # TODO: Experiment with different chunk sizes and overlap values
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    text_splitter = CharacterTextSplitter(chunk_size=st.session_state.chuck_size, chunk_overlap=0)
     texts = text_splitter.split_documents(documents)
     return texts
 
@@ -98,15 +101,30 @@ def embeddings_on_local_vectordb(texts):
 
 def embeddings_on_pinecone(texts):
     try:
-        from pinecone import Pinecone as PineconeClient
+        from pinecone import Pinecone as PineconeClient, ServerlessSpec
         from langchain_pinecone import PineconeVectorStore
         from langchain_openai.embeddings import OpenAIEmbeddings
+        
         embeddings = OpenAIEmbeddings(
                     openai_api_key=st.session_state.openai_api_key,
                     model="text-embedding-3-small",
                 )
 
-        pc = PineconeClient(api_key=st.session_state[''])
+        pc = PineconeClient(api_key=st.secrets["PINECONE_API_KEY"])
+
+        # Check if index exists
+        if st.session_state.pinecone_index not in pc.list_indexes().names():
+            # Create a new index
+            pc.create_index(
+                name=st.secrets["PINECONE_INDEX"],          # Your index name
+                dimension=1536,             # For OpenAI embeddings
+                metric="cosine",
+                spec=ServerlessSpec(
+                    cloud="aws",            # Cloud provider
+                    region="us-east-1"      # Region
+                )            # Distance metric
+            )
+        
         vector_store = PineconeVectorStore(
             index=pc.Index(st.session_state.pinecone_index), embedding=embeddings
         )
@@ -130,10 +148,38 @@ def query_llm(retriever, query):
     """
     try:
         # TODO: Add custom prompting for better answers
+        # Define the system prompt for legal analysis
+        system_template = """You are a legal document analyzer with expertise in contract review and risk assessment. When analyzing documents:
+
+        1. Always structure your analysis with clear sections
+        2. Highlight potential risks and obligations
+        3. Reference specific sections of the source documents
+        4. Flag any ambiguous or concerning language
+        5. Identify key dates, parties, and monetary terms
+        6. Note any missing standard clauses or unusual provisions
+
+        Format your responses with:
+        - Summary of relevant findings
+        - Key risks or concerns
+        - Specific recommendations
+        - Reference to source document sections
+
+        If you're unsure about any legal interpretation, acknowledge the uncertainty and suggest seeking qualified legal counsel.
+
+        Context: {context}
+        Chat History: {chat_history}
+        Question: {question}
+        Please provide an answer based on the context above. If you cannot find the answer in the context, please state that explicitly. Remember this is not legal advice and users should consult qualified legal counsel."""
+        from langchain.prompts import PromptTemplate
+        qa_prompt = PromptTemplate(
+            input_variables=["context"],
+            template=system_template
+        )
+
         qa_chain = ConversationalRetrievalChain.from_llm(
             llm=ChatOpenAI(openai_api_key=st.secrets['OPENAI_API_KEY']),
             retriever=retriever,
-            return_source_documents=True,
+            combine_docs_chain_kwargs={"prompt": qa_prompt}
         )
         
         # Process the query
@@ -155,7 +201,38 @@ def setup_interface():
     """
     Sets up the Streamlit interface components.
     """
+
     with st.sidebar:
+        # Vector store selection
+        st.session_state.pinecone_db = st.toggle(
+            'Use Pinecone Vector DB',
+            help="Toggle between local and cloud vector storage"
+        )
+
+       # Neg Space 
+        st.sidebar.write('') 
+
+        # Select chunk size
+        chunk_size_map = {
+            "Small": 250,
+            "Medium": 1000,
+            "Large":3000,
+            "XLarge": 4000
+        }
+        st.write("Select a chunk size for Pinecone")
+
+        chunk_size_option = st.select_slider(
+        "",
+        options=[
+            "Small",
+            "Medium",
+            "Large",
+            "XLarge"
+        ]
+        )
+        st.session_state.chuck_size = chunk_size_map[chunk_size_option]
+        st.write(chunk_size_map[chunk_size_option], "characters")
+
         # API keys and configuration
         if "OPENAI_API_KEY" in st.secrets:
             st.session_state.openai_api_key = st.secrets['OPENAI_API_KEY']
@@ -166,6 +243,15 @@ def setup_interface():
                 help="Enter your OpenAI API key"
             )
         
+        if "PINECONE_API_KEY" in st.secrets:
+            st.session_state.pinecone_api_key = st.secrets['OPENAI_API_KEY']
+        else:
+            st.session_state.pinecone_api_key = st.text_input(
+                "Pinecone API Key", 
+                type="password",
+                help="Enter your Pinecone API key"
+            )
+
         if "PINECONE_ENV" in st.secrets:
             st.session_state.pinecone_env = st.secrets['PINECONE_ENV']
         else:
@@ -181,15 +267,12 @@ def setup_interface():
                 "Pinecone Index Name",
                 help="Enter your Pinecone index name"
             )
-    
-    # Vector store selection
-    st.session_state.pinecone_db = st.toggle(
-        'Use Pinecone Vector DB',
-        help="Toggle between local and cloud vector storage"
-    )
-    
+ 
+
     # File upload
     # TODO: Add file size validation
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+
     st.session_state.source_docs = st.file_uploader(
         label="Upload Documents",
         type=["pdf", "docx", "txt", "csv", "md"],
@@ -204,7 +287,7 @@ def validate_prerequisites():
         
     if st.session_state.pinecone_db:
         if not all([
-            st.session_state[''],
+            st.session_state.openai_api_key,
             st.session_state.pinecone_env, 
             st.session_state.pinecone_index
         ]):
@@ -274,7 +357,7 @@ def main():
     setup_interface()
     
     # Process documents button
-    st.button("Process Documents", on_click=process_documents)
+    st.button("Process Legal Documents", on_click=process_documents)
     
     # Display chat history
     for message in st.session_state.messages:
