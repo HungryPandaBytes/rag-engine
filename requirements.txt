@@ -4,8 +4,8 @@ langchain-community
 langchain-openai
 langchain-pinecone
 openai
-pinecone-client
 chromadb
 pypdf
 pdf2image
 pytesseract
+pinecone

@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Vector store and embedding imports
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma, Pinecone
+from langchain_community.vectorstores import Chroma
 
 # Document processing imports
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
@@ -70,7 +70,7 @@ def split_documents(documents):
         texts: List of document chunks
     """
     # TODO: Experiment with different chunk sizes and overlap values
-    text_splitter = CharacterTextSplitter(chunk_size=st.session_state.chuck_size, chunk_overlap=0)
+    text_splitter = CharacterTextSplitter(chunk_size=st.session_state.chunk_size, chunk_overlap=0)
     texts = text_splitter.split_documents(documents)
     return texts
 
@@ -122,7 +122,7 @@ def embeddings_on_pinecone(texts):
                 spec=ServerlessSpec(
                     cloud="aws",            # Cloud provider
                     region="us-east-1"      # Region
-                )            # Distance metric
+                )            
             )
         
         vector_store = PineconeVectorStore(
@@ -189,7 +189,6 @@ def query_llm(retriever, query):
         })
         
         # Update conversation history
-        # TODO: Add source citations to the response
         st.session_state.messages.append((query, result['answer']))
         
         return result['answer']
@@ -212,28 +211,28 @@ def setup_interface():
         # Use Pinecone in production
         st.session_state.pinecone_db = True
 
-       # Neg Space 
-        st.sidebar.write('') 
+        st.markdown("**Advanced Settings**")
 
         # Select chunk size
         chunk_size_map = {
-            "Small": 250,
-            "Medium": 1000,
-            "Large":3000,
-            "XLarge": 4000
+            "XSmall": 250,
+            "Small": 500,
+            "Medium":1000,
+            "Large": 3000
         }
-        st.write("Select a chunk size for Pinecone")
+
+        st.write("Set the document chunk size for Pinecone vector indexing")
 
         chunk_size_option = st.select_slider(
         "",
         options=[
+            "XSmall",
             "Small",
             "Medium",
-            "Large",
-            "XLarge"
+            "Large"
         ]
         )
-        st.session_state.chuck_size = chunk_size_map[chunk_size_option]
+        st.session_state.chunk_size = chunk_size_map[chunk_size_option]
         st.write(chunk_size_map[chunk_size_option], "characters")
 
         # API keys and configuration
