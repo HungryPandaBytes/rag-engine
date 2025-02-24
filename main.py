@@ -164,7 +164,7 @@ def query_llm(retriever, query):
         - Specific recommendations
         - Reference to source document sections
 
-        If you're unsure about any legal interpretation, acknowledge the uncertainty and suggest seeking qualified legal counsel.
+        For each statement you make, you must cite the source document and relevant section. If you make a claim without finding supporting evidence in the provided context, explicitly state that it's based on general knowledge rather than the source documents.
 
         Context: {context}
         Chat History: {chat_history}
