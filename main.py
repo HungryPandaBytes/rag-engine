@@ -359,7 +359,7 @@ def main():
     setup_interface()
     
     # Process documents button
-    st.button("Process Legal Documents", on_click=process_documents)
+    st.button("Process Documents", on_click=process_documents)
     
     # Display chat history
     for message in st.session_state.messages:
