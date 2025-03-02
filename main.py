@@ -136,7 +136,7 @@ def embeddings_on_pinecone(texts):
         st.error(f"Error creating Pinecone vector store: {str(e)}")
         return None
 
-def query_llm(retriever, query):
+def query_llm(retriever, query="AI Analysis of the Docs..."):
     """
     Processes queries using the retrieval chain.
     
@@ -166,9 +166,7 @@ def query_llm(retriever, query):
 
         For each statement you make, you must cite the source document and relevant section. If you make a claim without finding supporting evidence in the provided context, explicitly state that it's based on general knowledge rather than the source documents.
 
-        Context: {context}
-        Chat History: {chat_history}
-        Question: {question}
+
         Please provide an answer based on the context above. If you cannot find the answer in the context, please state that explicitly. Remember this is not legal advice and users should consult qualified legal counsel."""
         from langchain.prompts import PromptTemplate
         qa_prompt = PromptTemplate(
