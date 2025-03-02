@@ -165,6 +165,7 @@ def query_llm(retriever, query="Help! Save me from drowning in legal mumbo jumbo
         Chat History: {chat_history}
         Question: {question}
         Please provide an answer based on the context above. If you cannot find the answer in the context, please state that explicitly. Remember this is not legal advice and users should consult qualified legal counsel."""
+        
         from langchain.prompts import PromptTemplate
         qa_prompt = PromptTemplate(
             input_variables=["context"],
@@ -334,9 +335,6 @@ def process_documents():
             )
 
         st.success("Documents processed successfully!")
-
-        # Generate response after a sucessful upload to Pinecone
-        query_llm(st.session_state.retriever)
 
     except Exception as e:
         st.error(f"Error processing documents: {str(e)}")
