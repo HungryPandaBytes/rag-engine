@@ -16,7 +16,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.chat_models import ChatOpenAI
 
-from pinecone import ServerlessSpec, Pinecone as PineconeClient
+from pinecone import ServerlessSpec,Pinecone as PineconeClient
 
 import streamlit as st
 
