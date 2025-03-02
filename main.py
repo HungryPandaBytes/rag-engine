@@ -149,22 +149,17 @@ def query_llm(retriever, query="Help! Save me from drowning in legal mumbo jumbo
     try:
         # TODO: Add custom prompting for better answers
         # Define the system prompt for legal analysis
-        system_template = """You are a legal document analyzer with expertise in contract review and risk assessment. When analyzing documents:
+        system_template = """You are a legal document analyzer with expertise in review and risk assessment. When analyzing documents:
 
         1. Always structure your analysis with clear sections
         2. Highlight potential risks and obligations
         3. Reference specific sections of the source documents
-        4. Flag any ambiguous or concerning language
-        5. Identify key dates, parties, and monetary terms
-        6. Note any missing standard clauses or unusual provisions
 
         Format your responses with:
         - Summary of relevant findings
         - Key risks or concerns
         - Specific recommendations
         - Reference to source document sections
-
-        For each statement you make, you must cite the source document and relevant section. If you make a claim without finding supporting evidence in the provided context, explicitly state that it's based on general knowledge rather than the source documents.
 
         Context: {context}
         Chat History: {chat_history}
