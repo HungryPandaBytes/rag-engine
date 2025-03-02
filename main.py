@@ -340,8 +340,8 @@ def process_documents():
 
         st.success("Documents processed successfully!")
 
-        # Generate Answer
-        query_llm(st.session_state.retriever, "")
+        # Generate response after a sucessful upload to Pinecone
+        query_llm(st.session_state.retriever)
 
     except Exception as e:
         st.error(f"Error processing documents: {str(e)}")
