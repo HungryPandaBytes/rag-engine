@@ -136,7 +136,7 @@ def embeddings_on_pinecone(texts):
         st.error(f"Error creating Pinecone vector store: {str(e)}")
         return None
 
-def query_llm(retriever, query="Please save me from trouble and give me a detailed analysis..."):
+def query_llm(retriever, query="Help! Save me from drowning in legal mumbo jumbo and give me a breakdown so clear even my dog would understand!"):
     """
     Processes queries using the retrieval chain.
     
