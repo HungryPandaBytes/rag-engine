@@ -198,36 +198,6 @@ def setup_interface():
     """
 
     with st.sidebar:
-        # Vector store selection
-        # st.session_state.pinecone_db = st.toggle(
-        #     'Use Pinecone Vector DB',
-        #     help="Toggle between local and cloud vector storage"
-        # )
-
-        st.markdown("**Advanced Settings**")
-
-        # Select chunk size
-        chunk_size_map = {
-            "XSmall": 250,
-            "Small": 500,
-            "Medium":1000,
-            "Large": 3000
-        }
-
-        st.write("Set the document chunk size for Pinecone vector indexing")
-
-        chunk_size_option = st.select_slider(
-        "",
-        options=[
-            "XSmall",
-            "Small",
-            "Medium",
-            "Large"
-        ]
-        )
-        st.session_state.chunk_size = chunk_size_map[chunk_size_option]
-        st.write(chunk_size_map[chunk_size_option], "characters")
-
         # API keys and configuration
         if "OPENAI_API_KEY" in st.secrets:
             st.session_state.openai_api_key = st.secrets['OPENAI_API_KEY']
