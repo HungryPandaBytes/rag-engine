@@ -204,9 +204,6 @@ def setup_interface():
         #     help="Toggle between local and cloud vector storage"
         # )
 
-        # Use Pinecone in production
-        st.session_state.pinecone_db = True
-
         st.markdown("**Advanced Settings**")
 
         # Select chunk size
@@ -350,7 +347,12 @@ def main():
     # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    
+    if "chunk_size" not in st.session_state:
+        st.session_state.chunk_size = 350
+    # Use Pinecone in production
+    if "pinecone_db" not in st.session_state:
+        st.session_state.pinecone_db = True
+
     # Set up the interface
     setup_interface()
     
