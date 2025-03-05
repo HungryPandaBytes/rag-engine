@@ -1,6 +1,7 @@
 import os
 import tempfile
 from pathlib import Path
+import uuid
 
 # Vector store and embedding imports
 from langchain_community.embeddings import OpenAIEmbeddings
@@ -125,10 +126,20 @@ def embeddings_on_pinecone(texts):
                 )            
             )
         
+        # Use session_id as namespace
+        namespace = st.session_state.session_id
+        
         vector_store = PineconeVectorStore(
-            index=pc.Index(st.session_state.pinecone_index), embedding=embeddings
+            index=pc.Index(st.session_state.pinecone_index), 
+            embedding=embeddings,
+            namespace=namespace  # Add namespace parameter
         )
-        vs = vector_store.from_documents(texts, embeddings, index_name=st.session_state.pinecone_index)
+        vs = vector_store.from_documents(
+            texts, 
+            embeddings, 
+            index_name=st.session_state.pinecone_index,
+            namespace=namespace  # Add namespace parameter
+        )
   
         return vs.as_retriever()
     
@@ -322,6 +333,13 @@ def main():
     # Use Pinecone in production
     if "pinecone_db" not in st.session_state:
         st.session_state.pinecone_db = True
+    # Initialize session ID if not present
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
+        
+    # Display session ID in sidebar for debugging (optional)
+    with st.sidebar:
+        st.text(f"Session ID: {st.session_state.session_id}")
 
     # Set up the interface
     setup_interface()
